@@ -22,4 +22,9 @@ class Contact extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function path()
+    {
+        return url('/contacts/' . $this->id);
+    }
 }

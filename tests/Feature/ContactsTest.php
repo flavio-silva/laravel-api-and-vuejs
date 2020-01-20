@@ -7,6 +7,7 @@ use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Support\Collection;
+use Symfony\Component\HttpFoundation\Response;
 use Tests\TestCase;
 use App\Contact;
 
@@ -38,9 +39,18 @@ class ContactsTest extends TestCase
         $response = $this->get('/api/contacts?api_token='. $user->api_token);
 
         $response->assertJsonCount(1);
+
         $response->assertJson([
-            ['id' => $contact->id]
+            'data' => [
+                [
+                    'data' => [
+                        'contact_id' => $contact->id
+                    ],
+                ]
+            ]
         ]);
+
+        $response->assertStatus(Response::HTTP_OK);
     }
 
     /** @test */
@@ -57,7 +67,7 @@ class ContactsTest extends TestCase
     /** @test */
     public function an_authenticated_user_add_a_contact()
     {
-        $this->post('api/contacts', $this->data());
+        $response = $this->post('api/contacts', $this->data());
 
         $contact = Contact::first();
 
@@ -66,6 +76,11 @@ class ContactsTest extends TestCase
         $this->assertEquals('05/14/1988', $contact->birthday->format('m/d/Y'));
         $this->assertEquals('ABC String', $contact->company);
 
+        $response->assertStatus(Response::HTTP_CREATED);
+        $response->assertJson([
+            'data' => ['contact_id' => $contact->id ],
+            'links' => ['self' => $contact->path()]
+        ]);
     }
 
     /** @test */
@@ -115,10 +130,14 @@ class ContactsTest extends TestCase
         $response = $this->get('api/contacts/' . $contact->id . '?api_token=' . $this->user->api_token);
 
         $response->assertJson([
-            'name' => $contact->name,
-            'email' => $contact->email,
-            'company' => $contact->company,
-            'birthday' => $contact->birthday
+            'data' => [
+                'contact_id' => $contact->id,
+                'name' => $contact->name,
+                'email' => $contact->email,
+                'company' => $contact->company,
+                'birthday' => $contact->birthday->format('m/d/Y'),
+                'last_updated' => $contact->updated_at->diffForHumans(),
+            ]
         ]);
     }
 
@@ -130,7 +149,7 @@ class ContactsTest extends TestCase
         $anotherUser = factory(User::class)->create();
 
         $response = $this->get('api/contacts/' . $contact->id . '?api_token=' . $anotherUser->api_token);
-        $response->assertStatus(404);
+        $response->assertStatus(403);
     }
 
     /** @test */
@@ -145,6 +164,17 @@ class ContactsTest extends TestCase
         $this->assertEquals('test@email.com', $contact->email);
         $this->assertEquals('05/14/1988', $contact->birthday->format('m/d/Y'));
         $this->assertEquals('ABC String', $contact->company);
+
+        $response->assertStatus(Response::HTTP_OK);
+
+        $response->assertJson([
+            'data' => [
+                'contact_id' => $contact->id
+            ],
+            'links' => [
+                'self' => $contact->path(),
+            ]
+        ]);
 
     }
 
@@ -166,11 +196,12 @@ class ContactsTest extends TestCase
     {
         $contact = factory(Contact::class)->create(['user_id' => $this->user->id]);
 
-        $this->delete('api/contacts/' . $contact->id, [
+        $response = $this->delete('api/contacts/' . $contact->id, [
             'api_token' => $this->user->api_token
         ]);
 
         $this->assertCount(0 , Contact::all());
+        $response->assertStatus(Response::HTTP_NO_CONTENT);
     }
 
     /** @test */
@@ -183,7 +214,7 @@ class ContactsTest extends TestCase
             'api_token' => $anotherUser->api_token
         ]);
 
-        $response->assertStatus(401);
+        $response->assertStatus(403);
     }
 
     private function data()
