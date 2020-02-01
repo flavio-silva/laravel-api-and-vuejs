@@ -1,6 +1,8 @@
 <?php
 Auth::routes();
 
-Route::get('/{any}', 'AppController@index')->where('any', '.*');
+Route::get('/logout-manual', function () {
+    request()->session()->invalidate();
+});
 
-Route::get('/home', 'HomeController@index')->name('home');
+Route::get('/{any}', 'AppController@index')->where('any', '.*');
