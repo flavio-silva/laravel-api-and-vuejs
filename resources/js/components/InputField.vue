@@ -6,6 +6,7 @@
                class="pt-8 w-full border-b pb-2 focus:outline-none focus:border-blue-400 text-gray-900"
                :placeholder="placeholder"
                @input="updateField"
+               :value="value"
                :class="errorClassObject()"
        />
 
@@ -22,7 +23,8 @@ export default {
         'name',
         'label',
         'placeholder',
-        'errorMessage'
+        'errorMessage',
+        'value'
     ],
     data() {
         return {
