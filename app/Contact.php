@@ -3,6 +3,7 @@
 namespace App;
 
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class Contact extends Model
@@ -21,6 +22,11 @@ class Contact extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function scopeBirthdays(Builder $query)
+    {
+        $query->whereRaw("birthday like '%-" . now()->format('m') . "-%'");
     }
 
     public function path()
